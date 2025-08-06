@@ -19,6 +19,10 @@ def get_conn():
 def home():
     return "Salut!"
 
+@app.route("/health", methods=["GET"])
+def health():
+    return jsonify({"status": "ok"}), 200
+    
 @app.route('/items', methods=['GET'])
 def get_items():
     conn = get_conn()
