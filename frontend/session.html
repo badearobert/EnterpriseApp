@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Session Page</title>
+</head>
+<body>
+  <h2>Session Page</h2>
+  <input type="text" id="userId" placeholder="Enter User ID" />
+  <button onclick="getSession()">Get Session</button>
+  <div id="result" style="margin-top:20px;"></div>
+
+  <script>
+    function getSession() {
+      const userId = document.getElementById('userId').value.trim();
+      if (!userId) {
+        alert('Please enter a valid User ID.');
+        return;
+      }
+      fetch(`http://localhost:5000/session/${userId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('Session not found.');
+          return response.json();
+        })
+        .then(data => {
+          document.getElementById('result').innerHTML = 
+            `<b>Session:</b> ${data.sessionid}`;
+        })
+        .catch(error => {
+          document.getElementById('result').innerHTML = 
+            `<span style="color:red;">Error: ${error.message}</span>`;
+        });
+    }
+  </script>
+</body>
+</html>

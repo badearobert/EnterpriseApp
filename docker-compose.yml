@@ -1,22 +1,18 @@
-version: '3.8'
-
 services:
   backend:
     build: ./backend
     ports:
       - "5000:5000"
-    depends_on:
-      - db
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+    - SESSION_SERVICE_URL=${SESSION_SERVICE_URL}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 10s
       timeout: 3s
       retries: 3
-    
+    networks:
+      - app-network
+
   frontend:
     build: ./frontend
     ports:
@@ -24,6 +20,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - app-network
 
   db:
     image: postgres:15
@@ -32,10 +30,87 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+
+  zookeeper:
+    image: bitnami/zookeeper:3.8
+    ports:
+      - "${ZOOKEEPER_PORT:-2181}:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    healthcheck:
+      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  kafka:
+    image: bitnami/kafka:2.8.1
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:${ZOOKEEPER_PORT}
+      - KAFKA_LISTENERS=PLAINTEXT://:${KAFKA_PORT}
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:${KAFKA_PORT}
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "kafka:${KAFKA_PORT}", "--list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  session-service:
+    build:
+      context: ./backend/session-service
+    ports:
+      - "${SESSION_SERVICE_PORT}:${SESSION_SERVICE_PORT}"
+    depends_on:
+      - kafka
+      - db
+    env_file:
+      - ./backend/session-service/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://SESSION_SERVICE_URL:${SESSION_SERVICE_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app-network
+
+  event-writer-service:
+    build:
+      context: ./backend/event-writer-service
+    ports:
+      - "${EVENT_WRITER_PORT}:${EVENT_WRITER_PORT}"
+    depends_on:
+      - kafka
+      - db
+    env_file:
+      - ./backend/event-writer-service/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://EVENT_WRITER_SERVICE_URL:${EVENT_WRITER_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app-network
 
 volumes:
   pgdata:
+
+networks:
+  app-network:
+    driver: bridge
