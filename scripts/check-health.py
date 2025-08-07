@@ -1,16 +1,23 @@
 import sys
 import requests
 
-url = "http://localhost:5000/health"
+ports = [5000, 5001, 5002]
+all_ok = True
 
-try:
-    response = requests.get(url, timeout=5)
-    if response.status_code == 200:
-        print("Health check successful.")
-        sys.exit(0)
-    else:
-        print(f"Health check failed with status code: {response.status_code}")
-        sys.exit(1)
-except requests.RequestException as e:
-    print(f"Health check failed: {e}")
+for port in ports:
+    url = f"http://localhost:{port}/health"
+    try:
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            print(f"{url}: Health check successful.")
+        else:
+            print(f"{url}: Health check failed with status code: {response.status_code}")
+            all_ok = False
+    except requests.RequestException as e:
+        print(f"{url}: Health check failed: {e}")
+        all_ok = False
+
+if all_ok:
+    sys.exit(0)
+else:
     sys.exit(1)
