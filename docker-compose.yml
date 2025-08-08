@@ -81,6 +81,8 @@ services:
       - prometheus_data:/prometheus
     ports:
       - "${PROMETHEUS_PORT}:9090"
+    environment:
+      - GF_PROMETHEUS_URL=http://prometheus:${PROMETHEUS_PORT}
     networks:
       - app-network
     restart: unless-stopped
@@ -110,6 +112,23 @@ services:
       - elasticsearch
     networks:
       - app-network
+  # ===================== GRAFANA ===================== 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    env_file:
+      - .env
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASS}
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - app-network
+    depends_on:
+      - elasticsearch
   # ================ SERVICE DISCOVERY ================
   etcd:
     image: gcr.io/etcd-development/etcd:v3.5.9
@@ -179,6 +198,7 @@ volumes:
   esdata:
   etcd-data:
   kafka_data:
+  grafana-data:
 
 networks:
   app-network:
