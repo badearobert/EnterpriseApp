@@ -12,6 +12,9 @@ from dataclasses import dataclass
 from datetime import datetime
 import json
 import time
+import base64
+import requests
+import logging
 
 load_dotenv()
 
@@ -20,6 +23,27 @@ KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "user-login-events")
 FLASK_PORT = int(os.getenv("FLASK_PORT", 5002))
 DATABASE_URL = os.getenv("DATABASE_URL")
 ELASTICSEARCH_URL = os.getenv("ELASTICSEARCH_URL")
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+# ================= SERVICE DISCOVERY =================
+ETCD_URL = os.getenv("ETCD_URL")
+
+# tbd move this into a shared library and import it in all services
+def etcd_register(service_name, service_host, service_port):
+    key = f"/services/{service_name}"
+    value = f"{service_host}:{service_port}"
+    url = f"{ETCD_URL}/v3/kv/put"
+    data = {
+        "key": base64.b64encode(key.encode()).decode(),
+        "value": base64.b64encode(value.encode()).decode()
+    }
+    resp = requests.post(url, json=data)
+    if resp.status_code == 200:
+        logger.debug(f"Registered {service_name} at {value} in etcd")
+    else:
+        logger.debug(f"Failed to register service in etcd: {resp.text}")
+# ================= SERVICE DISCOVERY =================
 
 MAX_RETRIES = 5
 RETRY_BACKOFF = 5
@@ -59,7 +83,7 @@ def consume_kafka():
                 group_id="event-writer-group",
                 value_deserializer=lambda m: json.loads(m.decode("utf-8")),
             )
-            print("Connected to Kafka, starting consuming events...")
+            logger.debug("Connected to Kafka, starting consuming events...")
 
             for msg in consumer:
                 data = msg.value
@@ -71,23 +95,23 @@ def consume_kafka():
                         event = LoginEvent(user_id=user_id, session_id=session_id)
                         db.add(event)
                         db.commit()
-                        print(f"[Kafka] Saved login event for user {user_id}, session {session_id}")
+                        logger.debug(f"[Kafka] Saved login event for user {user_id}, session {session_id}")
                         send_to_es(user_id, session_id, "login")
                     except Exception as e:
                         db.rollback()
-                        print(f"[Kafka] DB error: {e}")
+                        logger.debug(f"[Kafka] DB error: {e}")
                     finally:
                         db.close()
                 else:
-                    print(f"[Kafka] Invalid data: {data}")
+                    logger.debug(f"[Kafka] Invalid data: {data}")
 
         except KafkaError as e:
-            print(f"Kafka connection error: {e}. Retry {retries+1}/{MAX_RETRIES}")
+            logger.debug(f"Kafka connection error: {e}. Retry {retries+1}/{MAX_RETRIES}")
             retries += 1
             time.sleep(RETRY_BACKOFF * retries)
 
     if retries == MAX_RETRIES:
-        print("Failed to connect to Kafka after several retries. Exiting.")
+        logger.debug("Failed to connect to Kafka after several retries. Exiting.")
 
  # Send to Elasticsearch
 def send_to_es(user_id, session_id, event_type):
@@ -110,5 +134,6 @@ def health():
     return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
+    etcd_register("event-writer-service", "event-writer-service", FLASK_PORT)
     Thread(target=consume_kafka, daemon=True).start()
     app.run(host="0.0.0.0", port=FLASK_PORT)

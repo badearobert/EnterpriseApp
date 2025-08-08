@@ -1,11 +1,15 @@
 services:
   # ===================== BACKEND =====================
   backend:
-    build: ./backend
+    build: ./backend/api_gateway
     ports:
       - "5000:5000"
+    depends_on:
+      - etcd
     environment:
     - SESSION_SERVICE_URL=${SESSION_SERVICE_URL}
+    env_file:
+      - .env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 10s
@@ -115,6 +119,27 @@ services:
       - elasticsearch
     networks:
       - app-network
+  # ================ SERVICE DISCOVERY ================
+  etcd:
+    image: gcr.io/etcd-development/etcd:v3.5.9
+    container_name: etcd
+    ports:
+      - "${ETCD_CLIENT_PORT}:${ETCD_CLIENT_PORT}"
+      - "${ETCD_PEER_PORT}:${ETCD_PEER_PORT}"
+    environment:
+      - ETCD_NAME=etcd0
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:${ETCD_CLIENT_PORT}
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:${ETCD_CLIENT_PORT}
+      - ETCD_INITIAL_ADVERTISE_PEER_URLS=http://etcd:${ETCD_PEER_PORT}
+      - ETCD_LISTEN_PEER_URLS=http://0.0.0.0:${ETCD_PEER_PORT}
+      - ETCD_INITIAL_CLUSTER=etcd0=http://etcd:${ETCD_PEER_PORT}
+      - ETCD_INITIAL_CLUSTER_TOKEN=etcd-cluster-1
+      - ETCD_INITIAL_CLUSTER_STATE=new
+    volumes:
+      - etcd-data:/etcd-data
+    networks:
+      - app-network
+    restart: unless-stopped
   # ===================== SERVICES =====================
   session-service:
     build:
@@ -124,7 +149,9 @@ services:
     depends_on:
       - kafka
       - db
+      - etcd
     env_file:
+      - .env
       - ./backend/session-service/.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://${SESSION_SERVICE_URL}:${SESSION_SERVICE_PORT}/health"]
@@ -143,7 +170,9 @@ services:
     depends_on:
       - kafka
       - db
+      - etcd
     env_file:
+      - .env
       - ./backend/event-writer-service/.env
     healthcheck:
       test: ["CMD", "curl", "-f", "http://${EVENT_WRITER_PORT}:${EVENT_WRITER_PORT}/health"]
@@ -158,6 +187,7 @@ volumes:
   db_data:
   prometheus_data:
   esdata:
+  etcd-data:
 
 networks:
   app-network:
