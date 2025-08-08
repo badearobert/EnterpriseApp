@@ -3,3 +3,4 @@ psycopg2
 requests
 flask-cors
 dotenv
+prometheus_client
