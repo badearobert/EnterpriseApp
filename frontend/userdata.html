@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>User Data</title>
+  <style>
+    textarea { width: 300px; height: 80px; }
+    #result { margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h2>User Data</h2>
+
+  <div>
+    <h3>Get User Data</h3>
+    <input type="text" id="getUserId" placeholder="Enter User ID" />
+    <button onclick="getUserData()">Get User Data</button>
+    <div id="getResult"></div>
+  </div>
+
+  <hr />
+
+  <div>
+    <h3>Add User Data</h3>
+    <input type="text" id="addUserId" placeholder="Enter User ID" /><br /><br />
+    <textarea id="addUserData" placeholder='Enter user data JSON'></textarea><br />
+    <button onclick="addUserData()">Add User Data</button>
+    <div id="addResult"></div>
+  </div>
+
+  <script>
+    function getUserData() {
+      const userId = document.getElementById('getUserId').value.trim();
+      if (!userId) {
+        alert('Please enter a valid User ID.');
+        return;
+      }
+      fetch(`http://localhost:5000/user/${userId}`)
+        .then(response => {
+          if (!response.ok) throw new Error('User not found.');
+          return response.json();
+        })
+        .then(data => {
+          document.getElementById('getResult').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+        })
+        .catch(error => {
+          document.getElementById('getResult').innerHTML = `<span style="color:red;">Error: ${error.message}</span>`;
+        });
+    }
+
+    function addUserData() {
+      const userId = document.getElementById('addUserId').value.trim();
+      const userDataStr = document.getElementById('addUserData').value.trim();
+      if (!userId) {
+        alert('Please enter a valid User ID.');
+        return;
+      }
+      if (!userDataStr) {
+        alert('Please enter user data JSON.');
+        return;
+      }
+
+      let userData;
+      try {
+        userData = JSON.parse(userDataStr);
+      } catch {
+        alert('Invalid JSON data.');
+        return;
+      }
+
+      fetch(`http://localhost:5000/user/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      })
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to add user data.');
+          return response.json();
+        })
+        .then(data => {
+          document.getElementById('addResult').innerHTML = `<span style="color:green;">Success: ${JSON.stringify(data)}</span>`;
+        })
+        .catch(error => {
+          document.getElementById('addResult').innerHTML = `<span style="color:red;">Error: ${error.message}</span>`;
+        });
+    }
+  </script>
+</body>
+</html>

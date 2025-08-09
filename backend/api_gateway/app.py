@@ -8,6 +8,8 @@ from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 import base64
 import logging
 
+
+
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:8080"])
 load_dotenv()
@@ -52,11 +54,8 @@ def health():
 @app.route("/session/<string:user_id>", methods=["GET"])
 def get_session(user_id):
     try:
-        logger.debug(f"[DEBUG] Request primit pentru user {user_id}")
-        session_service = get_service_address("session-service")
-        if not session_service.startswith("http"):
-            session_service = "http://" + session_service
-        logger.debug(f"[DEBUG] session_service address: {session_service}")
+        logger.debug(f"[DEBUG] Request received for user {user_id}")
+        session_service = get_session_service_address()
         resp = requests.get(f"{session_service}/get-session/{user_id}")
         resp.raise_for_status()
         data = resp.json()
@@ -66,6 +65,42 @@ def get_session(user_id):
         return jsonify(dto), resp.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/user/<string:user_id>', methods=['GET'])
+def get_user_data(user_id):
+    user_data_service = get_user_data_service_address()
+    resp = requests.get(f"{user_data_service}/user/{user_id}")
+    return (resp.content, resp.status_code, resp.headers.items())
+
+@app.route('/user/<user_id>', methods=['POST'])
+def add_user_data(user_id):
+    user_data_service = get_user_data_service_address()
+    frontend_data = request.json or {}
     
+    user_data_model = {
+        "user_id": user_id,
+        "data": frontend_data
+    }
+    
+    print(f"Received from frontend: {frontend_data}")
+    print(f"Sending to user service: {user_data_model}")
+    
+    resp = requests.post(f"{user_data_service}/user", json=user_data_model)
+    return (resp.content, resp.status_code, resp.headers.items())
+
+#========================================================
+def get_session_service_address():
+    session_service = get_service_address("session-service")
+    if not session_service.startswith("http"):
+        session_service = "http://" + session_service
+    logger.debug(f"[DEBUG] session_service address: {session_service}")
+    return session_service
+
+def get_user_data_service_address():
+    user_data_service = get_service_address("user-data-service")
+    if not user_data_service.startswith("http"):
+        user_data_service = "http://" + user_data_service
+    return user_data_service
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)

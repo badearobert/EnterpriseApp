@@ -1,6 +1,6 @@
 flask
 flask_cors
-cassandra-driver==3.25.0
+kafka-python
 python-dotenv
 requests
 grpcio==1.74.0

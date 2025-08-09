@@ -42,7 +42,6 @@ def etcd_register(service_name, service_host, service_port):
     else:
         logger.debug(f"Failed to register service in etcd: {resp.text}")
 # ================= SERVICE DISCOVERY =================
-
 app = Flask(__name__)
 CORS(app)
 

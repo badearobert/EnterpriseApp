@@ -116,8 +116,6 @@ services:
       - ./monitoring/elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
       - esdata:/usr/share/elasticsearch/data
     environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
     env_file:
       - .env
@@ -207,7 +205,7 @@ services:
       - .env
       - ./backend/session-service/.env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://${SESSION_SERVICE_URL}:${SESSION_SERVICE_PORT}/health"]
+      test: ["CMD", "curl", "-f", "http://${SESSION_SERVICE_URL}/health"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -227,7 +225,26 @@ services:
       - .env
       - ./backend/event-writer-service/.env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://${EVENT_WRITER_PORT}:${EVENT_WRITER_PORT}/health"]
+      test: ["CMD", "curl", "-f", "http://${EVENT_WRITER_SERVICE_URL}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app-network
+    restart: unless-stopped
+  user-data-service:
+    build:
+      context: ./backend/user-data-service
+    ports:
+      - "${USER_DATA_SERVICE_PORT}:${USER_DATA_SERVICE_PORT}"
+    depends_on:
+      - etcd
+      - data-service
+    env_file:
+      - .env
+      - ./backend/user-data-service/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://${USER_DATA_SERVICE_URL}/health"]
       interval: 10s
       timeout: 5s
       retries: 3

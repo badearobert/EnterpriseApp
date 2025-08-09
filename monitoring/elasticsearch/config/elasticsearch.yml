@@ -3,3 +3,8 @@ node.name: "node-1"
 network.host: 0.0.0.0
 http.port: 9200
 discovery.type: single-node
+xpack.security.enabled: false
+bootstrap.memory_lock: false
+indices.memory.index_buffer_size: 128mb
+thread_pool.search.size: 2
+thread_pool.index.size: 2
