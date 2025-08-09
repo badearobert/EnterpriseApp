@@ -29,7 +29,7 @@ services:
     networks:
       - app-network
     restart: unless-stopped
-  # ===================== DATABASE =====================
+  # ===================== DATABASES =====================
   db:
     image: postgres:15
     container_name: db
@@ -42,6 +42,28 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  cassandra:
+    image: cassandra:latest
+    container_name: cassandra
+    ports:
+      - "${CASSANDRA_PORT}:9042"
+    environment:
+      - CASSANDRA_CLUSTER_NAME=${CASSANDRA_CLUSTER_NAME}
+    env_file:
+      - .env
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+      #- ./db/cassandra_init.cql:/docker-entrypoint-initdb.d/cassandra_init.cql
+    # command: >
+    #   bash -c "
+    #   docker-entrypoint.sh cassandra -f &
+    #   sleep 30
+    #   && cqlsh -f /docker-entrypoint-initdb.d/cassandra_init.cql
+    #   "
     networks:
       - app-network
     restart: unless-stopped
@@ -212,9 +234,28 @@ services:
     networks:
       - app-network
     restart: unless-stopped
-
+  data-service:
+    build:
+      context: ./backend/data-service
+    ports:
+      - "${DATA_SERVICE_PORT}:${DATA_SERVICE_PORT}"
+    depends_on:
+      - etcd
+      - cassandra
+    env_file:
+      - .env
+      - ./backend/data-service/.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://${DATA_SERVICE_URL}:${DATA_SERVICE_PORT}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - app-network
+    restart: unless-stopped
 volumes:
   db_data:
+  cassandra_data:
   prometheus_data:
   esdata:
   etcd-data:
