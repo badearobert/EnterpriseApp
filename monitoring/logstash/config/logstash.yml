@@ -1,0 +1,3 @@
+pipeline.workers: 1
+pipeline.batch.size: 50
+queue.type: persisted

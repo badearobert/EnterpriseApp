@@ -24,8 +24,15 @@ FLASK_PORT = int(os.getenv("FLASK_PORT", 5002))
 DATABASE_URL = os.getenv("DATABASE_URL")
 ELASTICSEARCH_URL = os.getenv("ELASTICSEARCH_URL")
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
+
+logging.getLogger('kafka').setLevel(logging.WARNING)
+logging.getLogger('kafka.conn').setLevel(logging.WARNING)
+logging.getLogger('kafka.coordinator').setLevel(logging.WARNING)
+logging.getLogger('kafka.protocol.parser').setLevel(logging.WARNING)
+logging.getLogger('kafka.consumer.fetcher').setLevel(logging.WARNING)
+
 # ================= SERVICE DISCOVERY =================
 ETCD_URL = os.getenv("ETCD_URL")
 
@@ -81,6 +88,8 @@ def consume_kafka():
                 bootstrap_servers=KAFKA_BROKER,
                 auto_offset_reset="earliest",
                 group_id="event-writer-group",
+                max_poll_records=100,
+                max_poll_interval_ms=300000,
                 value_deserializer=lambda m: json.loads(m.decode("utf-8")),
             )
             logger.debug("Connected to Kafka, starting consuming events...")
