@@ -5,6 +5,11 @@
 # db sharding, replicas
 # push cdn
 
+# small improvements
+- user id to storage, pass it on requests
+- cleanup / refactor
+- move service discovery logic to a module
+
 # migrate to k8s
 - deploys and replicas 
 - secrets

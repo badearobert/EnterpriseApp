@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 import base64
 import logging
-
+import uuid
 
 
 app = Flask(__name__)
@@ -42,6 +42,12 @@ def get_service_address(service_name):
 @app.before_request
 def before_request():
     REQUEST_COUNT.inc()
+    request.correlation_id = request.headers.get('X-Correlation-ID') or str(uuid.uuid4())
+
+@app.after_request
+def add_correlation_id_to_response(response):
+    response.headers['X-Correlation-ID'] = getattr(request, 'correlation_id', '')
+    return response
 
 @app.route("/metrics")
 def metrics():
@@ -54,7 +60,7 @@ def health():
 @app.route("/session/<string:user_id>", methods=["GET"])
 def get_session(user_id):
     try:
-        logger.debug(f"[DEBUG] Request received for user {user_id}")
+        logger.info(f"[{request.correlation_id}] Received request for session of user {user_id}")
         session_service = get_session_service_address()
         resp = requests.get(f"{session_service}/get-session/{user_id}")
         resp.raise_for_status()
@@ -68,12 +74,14 @@ def get_session(user_id):
 
 @app.route('/user/<string:user_id>', methods=['GET'])
 def get_user_data(user_id):
+    logger.info(f"[{request.correlation_id}] Received request for user data of user {user_id}")
     user_data_service = get_user_data_service_address()
     resp = requests.get(f"{user_data_service}/user/{user_id}")
     return (resp.content, resp.status_code, resp.headers.items())
 
 @app.route('/user/<user_id>', methods=['POST'])
 def add_user_data(user_id):
+    logger.info(f"[{request.correlation_id}] Received request to add user data of user {user_id}")
     user_data_service = get_user_data_service_address()
     frontend_data = request.json or {}
     
