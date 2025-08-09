@@ -57,13 +57,13 @@ services:
       - .env
     volumes:
       - cassandra_data:/var/lib/cassandra
-      #- ./db/cassandra_init.cql:/docker-entrypoint-initdb.d/cassandra_init.cql
-    # command: >
-    #   bash -c "
-    #   docker-entrypoint.sh cassandra -f &
-    #   sleep 30
-    #   && cqlsh -f /docker-entrypoint-initdb.d/cassandra_init.cql
-    #   "
+      - ./db/cassandra_init.cql:/docker-entrypoint-initdb.d/cassandra_init.cql
+    command: >
+      bash -c "
+      docker-entrypoint.sh cassandra -f &
+      sleep 30
+      && cqlsh -f /docker-entrypoint-initdb.d/cassandra_init.cql
+      "
     networks:
       - app-network
     restart: unless-stopped

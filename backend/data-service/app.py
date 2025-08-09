@@ -33,24 +33,7 @@ def connect(retries=10, delay=5):
             time.sleep(delay)
     raise Exception("Failed to connect to Cassandra after all retry attempts.")
 
-# tbd move this to cql and load on startup
-def create_keyspace_and_table(session):
-    session.execute("""
-        CREATE KEYSPACE IF NOT EXISTS mykeyspace
-        WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1};
-    """)
-    session.set_keyspace('mykeyspace')
-    session.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            user_id text PRIMARY KEY,
-            data text
-        );
-    """)
-    logger.debug("Keyspace loaded!")
-
-
 cluster, session = connect()
-create_keyspace_and_table(session)
 # ================= SERVICE DISCOVERY =================
 # tbd move this into a shared library and import it in all services
 def etcd_register(service_name, service_host, service_port):
