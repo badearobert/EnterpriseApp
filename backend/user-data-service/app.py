@@ -75,7 +75,7 @@ def add_user():
         
         logger.debug(f"Sending user_id: {user_id}")
         logger.debug(f"Sending data (as string): {data_str}")
-        return jsonify({"message": "GOT HERE"}), 203
+        
         response = stub.AddUser(user_pb2.AddUserRequest(user_id=user_id, data=data_str))
         
         if response.success:
