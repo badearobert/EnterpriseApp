@@ -1,11 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Enterprise App</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Docker Compose Services Dashboard</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f7fa;
+      color: #333;
+      margin: 0;
+      padding: 2rem;
+    }
+    h1 {
+      color: #007acc;
+      margin-bottom: 1rem;
+    }
+    ul {
+      list-style: none;
+      padding: 0;
+      max-width: 900px;
+      margin: 0 auto;
+      margin-top: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+    }
+    li {
+      background: #ffffff;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: box-shadow 0.3s ease;
+      flex: 1 1 calc(25% - 1rem);
+      min-width: 200px;
+      max-width: 220px;
+    }
+    li:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    a {
+      display: block;
+      padding: 1rem 1.5rem;
+      color: #007acc;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1.1rem;
+      text-align: center;
+    }
+    a:focus,
+    a:hover {
+      text-decoration: underline;
+      outline: none;
+    }
+    footer {
+      margin-top: 3rem;
+      text-align: center;
+      font-size: 0.9rem;
+      color: #777;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      margin: 0 0.5rem;
+      font-size: 1rem;
+      cursor: pointer;
+      border-radius: 5px;
+      border: 1px solid #007acc;
+      background-color: #e7f1ff;
+      color: #007acc;
+      transition: background-color 0.3s;
+    }
+  </style>
 </head>
 <body>
-  <h1>Hello!</h1>
-  <button onclick="location.href='session.html'">Session</button>
-  <button onclick="location.href='userdata.html'">User data</button>
+    <h1>Docker Compose Services Dashboard</h1>
+    <div style="margin-top: 2rem; text-align: center;">
+      <button onclick="location.href='session.html'">Session</button>
+      <button onclick="location.href='userdata.html'">User Data</button>
+    </div>
+    <br/>
+    <ul>
+      <li><a href="http://localhost:5000" target="_blank" rel="noopener noreferrer">Backend (API Gateway)</a></li>
+      <li><a href="http://localhost:8080" target="_blank" rel="noopener noreferrer">Frontend</a></li>
+      <li><a href="http://localhost:5432" target="_blank" rel="noopener noreferrer">PostgreSQL Database</a></li>
+      <li><a href="http://localhost:9042" target="_blank" rel="noopener noreferrer">Cassandra Database</a></li>
+      <li><a href="http://localhost:9092" target="_blank" rel="noopener noreferrer">Kafka Broker</a></li>
+      <li><a href="http://localhost:9090" target="_blank" rel="noopener noreferrer">Prometheus Monitoring</a></li>
+      <li><a href="http://localhost:9200" target="_blank" rel="noopener noreferrer">Elasticsearch</a></li>
+      <li><a href="http://localhost:5601" target="_blank" rel="noopener noreferrer">Kibana</a></li>
+      <li><a href="http://localhost:3000" target="_blank" rel="noopener noreferrer">Grafana</a></li>
+      <li><a href="http://localhost:5001" target="_blank" rel="noopener noreferrer">Session Service</a></li>
+      <li><a href="http://localhost:5002" target="_blank" rel="noopener noreferrer">Event Writer Service</a></li>
+      <li><a href="http://localhost:5003" target="_blank" rel="noopener noreferrer">Data Service</a></li>
+      <li><a href="http://localhost:5004" target="_blank" rel="noopener noreferrer">User Data Service</a></li>
+      <li><a href="http://localhost:16686" target="_blank" rel="noopener noreferrer">Jaeger Tracing UI</a></li>
+    </ul>
+
+  <footer>
+    Docker Compose Services Overview
+  </footer>
 </body>
 </html>
