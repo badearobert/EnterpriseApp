@@ -1,0 +1,196 @@
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: #f9fbfd;
+  color: #222;
+  margin: 0;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+h1 {
+  color: #007acc;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  color: #007acc;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+h3 {
+  margin-top: 0;
+  color: #005f99;
+  margin-bottom: 1rem;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  max-width: 900px;
+  margin: 2rem auto 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+}
+
+li {
+  background: #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: box-shadow 0.3s ease;
+  flex: 1 1 calc(25% - 1rem);
+  min-width: 200px;
+  max-width: 220px;
+}
+
+li:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+a {
+  display: block;
+  padding: 1rem 1.5rem;
+  color: #007acc;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+a:focus,
+a:hover {
+  text-decoration: underline;
+  outline: none;
+}
+
+footer {
+  margin-top: 3rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #777;
+}
+
+button {
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.3s;
+  font-size: 1rem;
+  border: none;
+  color: white;
+  background-color: #007acc;
+  padding: 0.8rem 1.5rem;
+}
+
+button:hover {
+  background-color: #005f99;
+}
+
+button + button {
+  margin-left: 0.5rem;
+}
+
+/* input, textarea, and form elements */
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  border: 2px solid #007acc;
+  border-radius: 5px;
+  box-sizing: border-box;
+  transition: border-color 0.3s;
+  font-family: monospace;
+}
+
+input[type="text"]:focus,
+textarea:focus {
+  outline: none;
+  border-color: #005f99;
+  box-shadow: 0 0 6px #005f99aa;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* containers */
+
+.input-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 600px;
+}
+
+section {
+  background: white;
+  padding: 1.5rem 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 600px;
+  margin-bottom: 2rem;
+}
+
+/* session result and other output blocks */
+
+#sessionResult,
+#getResult,
+#addResult {
+  margin-top: 2rem;
+  max-width: 600px;
+  background: white;
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #333;
+  min-height: 40px;
+  box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
+}
+
+#sessionResult span,
+#getResult span.error,
+#addResult span.error {
+  color: red;
+  font-weight: bold;
+}
+
+#getResult span.success,
+#addResult span.success {
+  color: #228833;
+  font-weight: 600;
+}
+
+/* Copy JSON Section */
+#exampleJson {
+  min-height: 120px;
+  margin-top: 0.5rem;
+  font-family: monospace;
+  font-size: 0.9rem;
+  background: #f0f4f8;
+  border: 1px solid #007acc;
+  border-radius: 5px;
+  padding: 1rem;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  resize: vertical;
+}
+
+#copyBtn {
+  margin-top: 0.5rem;
+  background-color: #28a745;
+}
+
+#copyBtn:hover {
+  background-color: #1e7e34;
+}
