@@ -14,6 +14,12 @@ import grpc
 sys.path.append(os.path.join(os.path.dirname(__file__), 'proto'))
 from proto import user_pb2
 from proto import user_pb2_grpc
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
 
 load_dotenv()
 
@@ -27,6 +33,17 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 CORS(app)
+# ================= OPEN TELEMETRY  =================
+open_telemetry_endpoint = os.getenv("OTEL_COLLECTOR_ENDPOINT")
+resource = Resource(attributes={"service.name": "user-data-service"})
+trace.set_tracer_provider(TracerProvider(resource=resource))
+tracer = trace.get_tracer(__name__)
+
+otlp_exporter = OTLPSpanExporter(endpoint=open_telemetry_endpoint, insecure=True)
+span_processor = BatchSpanProcessor(otlp_exporter)
+trace.get_tracer_provider().add_span_processor(span_processor)
+
+FlaskInstrumentor().instrument_app(app)
 # ================= SERVICE DISCOVERY =================
 ETCD_URL = os.getenv("ETCD_URL")
 

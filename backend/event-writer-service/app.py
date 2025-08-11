@@ -15,15 +15,25 @@ import time
 import base64
 import requests
 import logging
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.kafka import KafkaInstrumentor
 
 load_dotenv()
 
+app = Flask(__name__)
+CORS(app)
+# ================= CONFIGURATION =================
 KAFKA_BROKER = os.getenv("KAFKA_BROKER", "kafka:9092")
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "user-login-events")
 FLASK_PORT = int(os.getenv("FLASK_PORT", 5002))
 DATABASE_URL = os.getenv("DATABASE_URL")
 ELASTICSEARCH_URL = os.getenv("ELASTICSEARCH_URL")
-
+# ===================== LOGGING =====================
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
@@ -32,7 +42,18 @@ logging.getLogger('kafka.conn').setLevel(logging.WARNING)
 logging.getLogger('kafka.coordinator').setLevel(logging.WARNING)
 logging.getLogger('kafka.protocol.parser').setLevel(logging.WARNING)
 logging.getLogger('kafka.consumer.fetcher').setLevel(logging.WARNING)
+# ================= OPEN TELEMETRY  =================
+open_telemetry_endpoint = os.getenv("OTEL_COLLECTOR_ENDPOINT")
+resource = Resource(attributes={"service.name": "event-writer-service"})
+trace.set_tracer_provider(TracerProvider(resource=resource))
+tracer = trace.get_tracer(__name__)
 
+otlp_exporter = OTLPSpanExporter(endpoint=open_telemetry_endpoint, insecure=True)
+span_processor = BatchSpanProcessor(otlp_exporter)
+trace.get_tracer_provider().add_span_processor(span_processor)
+
+FlaskInstrumentor().instrument_app(app)
+KafkaInstrumentor().instrument()  # Kafka consumer
 # ================= SERVICE DISCOVERY =================
 ETCD_URL = os.getenv("ETCD_URL")
 
@@ -50,13 +71,9 @@ def etcd_register(service_name, service_host, service_port):
         logger.debug(f"Registered {service_name} at {value} in etcd")
     else:
         logger.debug(f"Failed to register service in etcd: {resp.text}")
-# ================= SERVICE DISCOVERY =================
-
+# ====================================================
 MAX_RETRIES = 5
 RETRY_BACKOFF = 5
-
-app = Flask(__name__)
-CORS(app)
 
 #tbd move to a separate file
 @dataclass

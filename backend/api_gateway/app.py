@@ -8,7 +8,12 @@ from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
 import base64
 import logging
 import uuid
-
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:8080"])
@@ -21,6 +26,17 @@ REQUEST_COUNT = Counter(
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+# ================= OPEN TELEMETRY  =================
+open_telemetry_endpoint = os.getenv("OTEL_COLLECTOR_ENDPOINT")
+resource = Resource(attributes={"service.name": "api-gateway"})
+trace.set_tracer_provider(TracerProvider(resource=resource))
+tracer = trace.get_tracer(__name__)
+
+otlp_exporter = OTLPSpanExporter(endpoint=open_telemetry_endpoint, insecure=True)
+span_processor = BatchSpanProcessor(otlp_exporter)
+trace.get_tracer_provider().add_span_processor(span_processor)
+
+FlaskInstrumentor().instrument_app(app)
 # ================= SERVICE DISCOVERY =================
 ETCD_URL = os.getenv("ETCD_URL", "http://etcd:2379")
 
@@ -42,12 +58,6 @@ def get_service_address(service_name):
 @app.before_request
 def before_request():
     REQUEST_COUNT.inc()
-    request.correlation_id = request.headers.get('X-Correlation-ID') or str(uuid.uuid4())
-
-@app.after_request
-def add_correlation_id_to_response(response):
-    response.headers['X-Correlation-ID'] = getattr(request, 'correlation_id', '')
-    return response
 
 @app.route("/metrics")
 def metrics():
@@ -60,7 +70,6 @@ def health():
 @app.route("/session/<string:user_id>", methods=["GET"])
 def get_session(user_id):
     try:
-        logger.info(f"[{request.correlation_id}] Received request for session of user {user_id}")
         session_service = get_session_service_address()
         resp = requests.get(f"{session_service}/get-session/{user_id}")
         resp.raise_for_status()
@@ -74,14 +83,12 @@ def get_session(user_id):
 
 @app.route('/user/<string:user_id>', methods=['GET'])
 def get_user_data(user_id):
-    logger.info(f"[{request.correlation_id}] Received request for user data of user {user_id}")
     user_data_service = get_user_data_service_address()
     resp = requests.get(f"{user_data_service}/user/{user_id}")
     return (resp.content, resp.status_code, resp.headers.items())
 
 @app.route('/user/<user_id>', methods=['POST'])
 def add_user_data(user_id):
-    logger.info(f"[{request.correlation_id}] Received request to add user data of user {user_id}")
     user_data_service = get_user_data_service_address()
     frontend_data = request.json or {}
     

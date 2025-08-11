@@ -185,6 +185,20 @@ services:
     networks:
       - app-network
     restart: unless-stopped
+  # ================= PROMETHEUS & AL ==================
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./monitoring/opentelemetry/config/otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "${OTEL_COLLECTOR_RECEIVER_PORT_GRPC}:${OTEL_COLLECTOR_RECEIVER_PORT_GRPC}"
+      - "${OTEL_COLLECTOR_RECEIVER_PORT_HTTP}:${OTEL_COLLECTOR_RECEIVER_PORT_HTTP}"
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "${JAEGER_TRACING_PORT_UI}:${JAEGER_TRACING_PORT_UI}"
+      - "${JAEGER_TRACING_PORT_GRPC}:${JAEGER_TRACING_PORT_GRPC}"
   # ===================== SERVICES =====================
   session-service:
     build:

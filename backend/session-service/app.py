@@ -8,19 +8,42 @@ from dotenv import load_dotenv
 import base64
 import requests
 import logging
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.flask import FlaskInstrumentor
+from opentelemetry.instrumentation.kafka import KafkaInstrumentor
 
 load_dotenv()
+app = Flask(__name__)
+CORS(app)
 
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "user-login-events")
 FLASK_PORT = int(os.getenv("FLASK_PORT", 5001))
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+# ================= OPEN TELEMETRY  =================
+open_telemetry_endpoint = os.getenv("OTEL_COLLECTOR_ENDPOINT")
+resource = Resource(attributes={"service.name": "session-service"})
+trace.set_tracer_provider(TracerProvider(resource=resource))
+tracer = trace.get_tracer(__name__)
+
+otlp_exporter = OTLPSpanExporter(endpoint=open_telemetry_endpoint, insecure=True)
+span_processor = BatchSpanProcessor(otlp_exporter)
+trace.get_tracer_provider().add_span_processor(span_processor)
+
+FlaskInstrumentor().instrument_app(app)
+KafkaInstrumentor().instrument() # Kafka producer
+
 producer = KafkaProducer(
     bootstrap_servers=os.getenv("KAFKA_BROKER", "kafka:9092"),
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
-
+# ====================================================
 # tbd add in-memory store for session management
 session_map = {}  # user_id -> session data
 
@@ -42,8 +65,6 @@ def etcd_register(service_name, service_host, service_port):
     else:
         logger.debug(f"Failed to register service in etcd: {resp.text}")
 # ================= SERVICE DISCOVERY =================
-app = Flask(__name__)
-CORS(app)
 
 @app.route("/get-session/<string:user_id>", methods=["GET"])
 def get_session(user_id):
