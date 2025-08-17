@@ -8,3 +8,4 @@ opentelemetry-sdk
 opentelemetry-instrumentation-flask
 opentelemetry-exporter-otlp
 opentelemetry-instrumentation-kafka-python
+redis

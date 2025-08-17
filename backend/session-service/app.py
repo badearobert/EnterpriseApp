@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import base64
 import requests
 import logging
+import redis
 from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
@@ -19,6 +20,10 @@ from opentelemetry.instrumentation.kafka import KafkaInstrumentor
 load_dotenv()
 app = Flask(__name__)
 CORS(app)
+
+redis_host = os.getenv('REDIS_HOST')
+redis_port = int(os.getenv('REDIS_PORT'))
+redis_storage = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
 
 KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "user-login-events")
 FLASK_PORT = int(os.getenv("FLASK_PORT", 5001))
@@ -43,10 +48,6 @@ producer = KafkaProducer(
     bootstrap_servers=os.getenv("KAFKA_BROKER", "kafka:9092"),
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
-# ====================================================
-# tbd add in-memory store for session management
-session_map = {}  # user_id -> session data
-
 # ================= SERVICE DISCOVERY =================
 ETCD_URL = os.getenv("ETCD_URL")
 
@@ -68,8 +69,9 @@ def etcd_register(service_name, service_host, service_port):
 
 @app.route("/get-session/<string:user_id>", methods=["GET"])
 def get_session(user_id):
-    if user_id in session_map:
-        return jsonify(session_map[user_id])
+    session_id = redis_storage.get(f"user:{userid}")
+    if session_id:
+        return jsonify({"session_id": session_id})
 
     session_id = str(uuid.uuid4())
     session_data = {
@@ -77,7 +79,8 @@ def get_session(user_id):
         "sessionId": session_id,
         "event": "login"
     }
-    session_map[user_id] = session_data
+
+    redis_storage.set(f"user:{user_id}", session_id)
     try:
         producer.send(KAFKA_TOPIC, session_data)
         producer.flush()
